@@ -65,8 +65,12 @@ int main(void) {
           }
           FD_SET(client_fd, &readable_fds);
         } else {
-          char msg[1024 * 1024];
+          char msg[1024];
           recv(i, &msg, 1024, 0);
+          int l = 0;
+          while (msg[l] > 0)
+            l++;
+          send(i, &msg, l, 0);
           printf("msg: %s\n", msg);
           FD_CLR(i, &readable_fds);
           close(i);
