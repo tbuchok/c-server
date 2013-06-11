@@ -17,7 +17,7 @@ int main(void) {
 
   memset(&client_address, 0, client_address_size);
   memset(&server_address, 0, server_address_size);
-  
+
   server_address.sin_family = AF_INET;
   server_address.sin_port = htons(DEFAULT_PORT);
   server_address.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -29,15 +29,20 @@ int main(void) {
   int listening = listen(server_fd, 10);
   printf("| Listening ... %i\n", listening); // Log
   while (1) {
-    printf("client_address.sin_port: %i\n", client_address.sin_port);
     printf("Accepting a connections ...\n");
     client_fd = accept(server_fd, (struct sockaddr*)&client_address, &client_address_size);
-    printf("> Received connection %i ... \n", client_fd);
-    char msg[1024];
-    recv(client_fd, &msg, 1024, 0);
-    printf("< Sending :%s", msg); // Log
-    send(client_fd, &msg, sizeof msg, 0);
-    close(client_fd);
+    if (client_fd > 0) {
+      printf("> Received connection %i ... \n", client_fd);
+      char msg[1024];
+      recv(client_fd, &msg, 1024, 0);
+      int send_length = 0;
+      while( msg[send_length] > 0)
+        send_length++;
+      printf("< Sending: %s", msg); // Log
+      send(client_fd, &msg, send_length, 0);
+      close(client_fd);  
+    }
+    
   }
   close(server_fd);
   printf("Closing down the server ... \n");
