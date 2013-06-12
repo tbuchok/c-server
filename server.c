@@ -1,6 +1,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -11,6 +12,38 @@
 #define DEFAULT_PORT 3000  // the port users will be connecting to
 #define QUEUE 10 // how many pending connections queue will hold
 
+struct word {
+  int amount_found;
+  int tries;
+  int total_tries;
+  int word_size;
+  char letters[5];
+  bool found[5];
+};
+
+bool checkWord(char entry, struct word *hangman) {
+    
+  bool done = false;
+
+  if (entry != '\n') {
+    char word[5];
+    int i;
+    for (i = 0; i < hangman->word_size; i++) {
+      if (hangman->letters[i] == entry || hangman->found[i]) {
+        hangman->found[i] = true;
+        done = true;
+        word[i] = hangman->letters[i];
+      } else {
+        done = false;
+        word[i] = '_';
+      }
+    }
+    printf("%s\n", word);
+    hangman->tries++;
+  }  
+  return done;
+}
+
 int main(void) {
 
   printf("Booting up server ...\n");
@@ -20,6 +53,12 @@ int main(void) {
   int server_address_size = sizeof server_address;
   int client_address_size = sizeof client_address;
   int server_fd, client_fd, max_fd;
+
+  // Hangman stuff
+  struct word hangman = { .letters = "Hello", .tries = 0 };
+  hangman.word_size = sizeof(hangman.letters) / sizeof(hangman.letters[0]);
+  hangman.total_tries = hangman.word_size * 2;
+  // End Hangman stuff
 
   memset(&client_address, 0, client_address_size);
   memset(&server_address, 0, server_address_size);
@@ -67,6 +106,7 @@ int main(void) {
         } else {
           char msg[1024];
           recv(i, &msg, 1024, 0);
+          checkWord(msg[0], &hangman);
           int l = 0;
           while (msg[l] > 0)
             l++;
