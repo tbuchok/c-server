@@ -12,38 +12,6 @@
 #define DEFAULT_PORT 3000  // the port users will be connecting to
 #define QUEUE 10 // how many pending connections queue will hold
 
-struct word {
-  int amount_found;
-  int tries;
-  int total_tries;
-  int word_size;
-  char letters[5];
-  bool found[5];
-};
-
-bool checkWord(char entry, struct word *hangman) {
-    
-  bool done = false;
-
-  if (entry != '\n') {
-    char word[5];
-    int i;
-    for (i = 0; i < hangman->word_size; i++) {
-      if (hangman->letters[i] == entry || hangman->found[i]) {
-        hangman->found[i] = true;
-        done = true;
-        word[i] = hangman->letters[i];
-      } else {
-        done = false;
-        word[i] = '_';
-      }
-    }
-    printf("%s\n", word);
-    hangman->tries++;
-  }  
-  return done;
-}
-
 int main(void) {
 
   printf("Booting up server ...\n");
@@ -53,12 +21,6 @@ int main(void) {
   int server_address_size = sizeof server_address;
   int client_address_size = sizeof client_address;
   int server_fd, client_fd, max_fd;
-
-  // Hangman stuff
-  struct word hangman = { .letters = "Hello", .tries = 0 };
-  hangman.word_size = sizeof(hangman.letters) / sizeof(hangman.letters[0]);
-  hangman.total_tries = hangman.word_size * 2;
-  // End Hangman stuff
 
   memset(&client_address, 0, client_address_size);
   memset(&server_address, 0, server_address_size);
@@ -83,13 +45,12 @@ int main(void) {
   printf("| Listening ... %i\n", listening); // Log
 
   FD_ZERO(&readable_fds);
+  FD_ZERO(&writable_fds);
+  FD_ZERO(&error_fds);
   FD_SET(server_fd, &readable_fds);  // solved our problem? set server_fds `readable_fds`
 
     int a = 0, b = 0;
   while (1) {
-    // FD_ZERO(&writable_fds);
-    // FD_ZERO(&error_fds);
-
     select_timeout.tv_sec = 1; // seconds
     select_timeout.tv_usec = 0; // microseconds
     select(max_fd, &readable_fds, &writable_fds, (fd_set *) 0, NULL);
@@ -104,14 +65,18 @@ int main(void) {
           }
           FD_SET(client_fd, &readable_fds);
         } else {
-          char msg[1024];
-          recv(i, &msg, 1024, 0);
-          checkWord(msg[0], &hangman);
-          int l = 0;
-          while (msg[l] > 0)
-            l++;
-          send(i, &msg, l, 0);
-          printf("msg: %s\n", msg);
+         
+          int buffer_size = 1024, reader_offset = 0, count = 0;
+
+          char *reader = malloc(1);
+          FILE *request = fdopen(i, "r");
+          
+          while (fread(reader + reader_offset, buffer_size, 1, request)) {            
+            buffer_size *= 2;
+            reader_offset = (buffer_size / 2) - 1;
+          }
+
+          send(i, reader, buffer_size + reader_offset, 0);
           FD_CLR(i, &readable_fds);
           close(i);
         }
