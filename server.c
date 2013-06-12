@@ -12,6 +12,15 @@
 #define DEFAULT_PORT 3000  // the port users will be connecting to
 #define QUEUE 10 // how many pending connections queue will hold
 
+void reverse_string(char *s) {
+  char *end; 
+  for(end = s + (strlen(s) - 2); end > s ; --end, ++s) {
+    (*s) ^= (*end);
+    (*end) ^= (*s);
+    (*s) ^= (*end);
+  }
+}
+
 int main(void) {
 
   printf("Booting up server ...\n");
@@ -65,7 +74,7 @@ int main(void) {
           }
           FD_SET(client_fd, &readable_fds);
         } else {
-         
+          
           int buffer_size = 1024, reader_offset = 0, count = 0;
 
           char *reader = malloc(1);
@@ -75,8 +84,9 @@ int main(void) {
             buffer_size *= 2;
             reader_offset = (buffer_size / 2) - 1;
           }
-
+          reverse_string(reader);
           send(i, reader, buffer_size + reader_offset, 0);
+          memset(reader, 0, buffer_size + reader_offset); // reset memory after sending
           FD_CLR(i, &readable_fds);
           close(i);
         }
