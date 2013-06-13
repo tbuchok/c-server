@@ -84,9 +84,10 @@ int main(void) {
             buffer_size *= 2;
             reader_offset = (buffer_size / 2) - 1;
           }
-          reverse_string(reader);
+          // reverse_string(reader);
           send(i, reader, buffer_size + reader_offset, 0);
           memset(reader, 0, buffer_size + reader_offset); // reset memory after sending
+          free(reader);
           FD_CLR(i, &readable_fds);
           close(i);
         }
